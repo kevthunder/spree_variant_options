@@ -31,7 +31,16 @@ if (!Array.find_matches) Array.find_matches = function(a) {
 }
 
 function VariantOptions(params) {
-
+  var self = this;
+  this.params = params;
+  if(window.console){
+  	console.log(params);
+  }
+  this.variant_options = [];
+  $.each(params.options,function(key, value){
+    self.variant_options.push(new VariantOption(self,key,self.variant_options.length))
+  });
+  
   var options = params['options'];
   var i18n = params['i18n'];
   var allow_backorders = !params['track_inventory_levels'];
@@ -43,7 +52,12 @@ function VariantOptions(params) {
   var buttons;
 
 
-  function init() {
+  this.init = function () {
+    $.each(this.variant_options,function(key, variant_option){
+      variant_option.init();
+    });
+    
+    ////////// old stuff //////////
     divs = $('#product-variants .variant-options');
     disable(divs.find('a.option-value').addClass('locked'));
     update();
@@ -57,7 +71,8 @@ function VariantOptions(params) {
       });
     }
   }
-
+  
+  ////////// old stuff //////////
   function get_index(parent) {
     return parseInt($(parent).attr('class').replace(/[^\d]/g, ''));
   }
@@ -220,7 +235,7 @@ function VariantOptions(params) {
       }
 
       $('#variant_id, form[data-form-type="variant"] input[name$="[variant_id]"]').val('');
-      $('#cart-form button[type=submit], form[data-form-type="variant"] button[type=submit]').attr('disabled', true).fadeTo(0, 0.5);
+      $('#cart-form button[type=submit], #inside-product-cart-form button[type=submit], form[data-form-type="variant"] button[type=submit]').attr('disabled', true).fadeTo(0, 0.5);
       price = $('#product-price').addClass('unselected').find('.price')
       // Replace product price by "(select)" only when there are at least 1 variant not out-of-stock
       variants = $("div.variant-options.index-0")
@@ -278,6 +293,7 @@ function VariantOptions(params) {
         selection.addClass('out-of-stock').attr('title', i18n.out_of_stock);
     });
   };
-  $(document).ready(init);
+  
+  $(document).ready(function(){self.init()});
 
 };
