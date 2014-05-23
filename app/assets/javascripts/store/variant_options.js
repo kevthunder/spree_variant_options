@@ -101,24 +101,46 @@ function VariantOptions(params) {
         selection = m;
       }
     });
+    var selectable = 0;
     btns.removeClass('in-stock out-of-stock unavailable').each(function(i, element) {
+      //collect status
       var variants = get_variant_objects(element.rel);
       var keys = $.keys(variants);
-      if (keys.length == 0) {
-        disable($(element).addClass('unavailable locked').unbind('click'));
-      } else if (keys.length == 1) {
-        _var = variants[keys[0]];
-        $(element).addClass(_var.in_stock ? selection.length == 1 ? 'in-stock auto-click' : 'in-stock' : 'out-of-stock');
-      } else if (allow_backorders) {
-        $(element).addClass('in-stock');
-      } else {
-        var count = 0;
-        $.each(variants, function(key, value) {
-          count += value.in_stock ? 1 : 0
-        });
-        $(element).addClass(count > 0 ? 'in-stock' : 'out-of-stock');
+      var available = (keys.length != 0);
+      var in_stock = false;
+      var auto_selected = false;
+      if (available) {
+        if (keys.length == 1) {
+          in_stock = variants[keys[0]].in_stock;
+          auto_selected = in_stock && selection.length == 1;
+        } else if (allow_backorders) {
+          in_stock = true;
+        } else {
+          $.each(variants, function(key, value) {
+            if (value.in_stock) {
+              in_stock = true;
+              return false; //break the loop
+            }
+          });
+        }
       }
+      //apply DOM modification
+      if (!available) disable($(element).addClass('unavailable locked').unbind('click'));
+      if (in_stock) {
+        selectable++;
+        $(element).addClass("in-stock")
+      } else if(available){
+        $(element).addClass("out-of-stock")
+      }
+      if (auto_selected) $(element).addClass('auto-click')
     });
+    
+    var $parent = btns.first().parents('.variant-options:first');
+    if(selectable > 0){
+      $parent.removeClass("nothing-available");
+    }else{
+      $parent.addClass("nothing-available");
+    }
   }
 
   function get_variant_objects(rels) {
@@ -181,7 +203,7 @@ function VariantOptions(params) {
   function toggle(variants) {
     if (variant) {
       $('#variant_id, form[data-form-type="variant"] input[name$="[variant_id]"]').val(variant.id);
-      $('#product-price .price').removeClass('unselected').text(variant.price);
+      $('#product-price').removeClass('unselected').find('.price').text(variant.price);
       if (variant.in_stock)
         $('#cart-form button[type=submit]').attr('disabled', false).fadeTo(100, 1);
       $('form[data-form-type="variant"] button[type=submit]').attr('disabled', false).fadeTo(100, 1);
@@ -199,7 +221,7 @@ function VariantOptions(params) {
 
       $('#variant_id, form[data-form-type="variant"] input[name$="[variant_id]"]').val('');
       $('#cart-form button[type=submit], form[data-form-type="variant"] button[type=submit]').attr('disabled', true).fadeTo(0, 0.5);
-      price = $('#product-price .price').addClass('unselected')
+      price = $('#product-price').addClass('unselected').find('.price')
       // Replace product price by "(select)" only when there are at least 1 variant not out-of-stock
       variants = $("div.variant-options.index-0")
       if (variants.find("a.option-value.out-of-stock").length != variants.find("a.option-value").length)
@@ -215,9 +237,9 @@ function VariantOptions(params) {
     parent.nextAll().each(function(index, element) {
       disable($(element).find('a.option-value').show().removeClass('in-stock out-of-stock').addClass('locked').unbind('click'));
       $(element).find('a.clear-button').hide();
-      $(element).find('h6 strong.selection').html('').removeClass('out-of-stock');
+      $(element).find('.selection').html('').removeClass('out-of-stock');
     });
-    parent.find('strong.selection').html('').removeClass('out-of-stock');
+    parent.find('.selection').html('').removeClass('out-of-stock');
     show_all_variant_images();
   }
 
@@ -249,7 +271,7 @@ function VariantOptions(params) {
     var selected = divs.find('a.selected');
     selected.each(function(){
       $this = $(this)
-      var selection = $this.parents('.variant-options').find('h6 strong.selection')
+      var selection = $this.parents('.variant-options').find('.selection')
       selection.html($this.attr('title'));
 
       if ($this.hasClass('out-of-stock'))
