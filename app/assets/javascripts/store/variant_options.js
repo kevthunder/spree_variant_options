@@ -1,8 +1,33 @@
+VariantOptionWidget = {}
+
 $.extend({
   keys: function(obj){
     var a = [];
     $.each(obj, function(k){ a.push(k) });
     return a;
+  },
+  values: function(obj){
+    var a = [];
+    $.each(obj, function(k,v){ a.push(v) });
+    return a;
+  },
+  first: function(obj,funct){
+    var res = null;
+    $.each(obj, function(key,val){ 
+      if(!funct || funct(val)) {
+        res = val;
+        return false;
+      }
+    });
+    return res;
+  },
+  where: function(obj,funct){
+    var res = {};
+    $.each(obj, function(key,val){ if(funct(val,key)) res[key] = val });
+    return res;
+  },
+  intersect_key: function(obj1,obj2){
+    return $.where(obj1,function (val,key){ return obj2[key] });
   }
 });
 
@@ -15,7 +40,7 @@ if (!Array.indexOf) Array.prototype.indexOf = function(obj) {
   return -1;
 }
 
-if (!Array.find_matches) Array.find_matches = function(a) {
+/*if (!Array.find_matches) Array.find_matches = function(a) {
   var i, m = [];
   a = a.sort();
   i = a.length
@@ -28,19 +53,25 @@ if (!Array.find_matches) Array.find_matches = function(a) {
     return false;
   }
   return m;
-}
+}*/
 
 function VariantOptions(params) {
   var self = this;
   this.params = params;
-  if(window.console){
-  	console.log(params);
-  }
-  this.variant_options = [];
+  // if(window.console){
+  	// console.log(params);
+  // }
+  this.variant_options = {};
+  this.widget_type = 'Buttons';
+  this.bidirectional = false;
+  
+  var i = 0;
   $.each(params.options,function(key, value){
-    self.variant_options.push(new VariantOption(self,key,self.variant_options.length))
+    self.variant_options[key] = new VariantOption(self,key,i);
+    i++;
   });
   
+  /*
   var options = params['options'];
   var i18n = params['i18n'];
   var allow_backorders = !params['track_inventory_levels'];
@@ -49,7 +80,7 @@ function VariantOptions(params) {
 
   var variant, divs, parent, index = 0;
   var selection = [];
-  var buttons;
+  var buttons;*/
 
 
   this.init = function () {
@@ -57,8 +88,10 @@ function VariantOptions(params) {
       variant_option.init();
     });
     
+    this.update();
+    
     ////////// old stuff //////////
-    divs = $('#product-variants .variant-options');
+    /*divs = $('#product-variants .variant-options'); //remove
     disable(divs.find('a.option-value').addClass('locked'));
     update();
     enable(parent.find('a.option-value'));
@@ -69,9 +102,18 @@ function VariantOptions(params) {
       divs.each(function(){
         $(this).find("ul.variant-option-values li a.in-stock:first").click();
       });
-    }
+    }*/
   }
   
+  this.update = function(skip){
+    $.each(this.variant_options,function(key, variant_option){
+      if(!skip || skip.id != key){
+        variant_option.update();
+      }
+    });
+  }
+  
+  /*
   ////////// old stuff //////////
   function get_index(parent) {
     return parseInt($(parent).attr('class').replace(/[^\d]/g, ''));
@@ -85,17 +127,22 @@ function VariantOptions(params) {
   }
 
   function disable(btns) {
-    return btns.removeClass('selected');
+    return btns.removeClass('selected'); //done
   }
 
   function enable(btns) {
     bt = btns.not('.unavailable').removeClass('locked').unbind('click')
     if (!allow_select_outofstock && !allow_backorders)
       bt = bt.filter('.in-stock')
-    return bt.click(handle_click).filter('.auto-click').removeClass('auto-click').click();
+      
+    return bt.click(handle_click) //done
+        .filter('.auto-click').removeClass('auto-click').click();
   }
 
   function advance() {
+    if(window.console){
+    	console.log('advance');
+    }
     index++
     update();
     inventory(buttons.removeClass('locked'));
@@ -294,6 +341,11 @@ function VariantOptions(params) {
     });
   };
   
+  */
   $(document).ready(function(){self.init()});
-
+  
+  if(window.console){
+  	console.log(self);
+  }
+  
 };
