@@ -1,4 +1,5 @@
-function VariantOptionValue(optionObj,id,order){
+VariantOptions.Value = function (optionObj,id,order){
+  var utl = VariantOptions.Utils
   this.optionObj = optionObj;
   this.optionsObj = optionObj.optionsObj;
   this.id = id;
@@ -6,8 +7,20 @@ function VariantOptionValue(optionObj,id,order){
   this.params = optionObj.params;
   this.variants = optionObj.variants[id];
   
-  if(this.optionObj.widget.ValueWidget){
-    this.value_widget = new this.optionObj.widget.ValueWidget(this);
+  
+  
+  if( typeof this.optionsObj.widget_types === 'string' ) {
+    this.widget_type = this.optionsObj.widget_types;
+  }else if( typeof this.optionsObj.widget_types['value'] === 'string' ) {
+    this.widget_type = this.optionsObj.widget_types['value'];
+  }else if( typeof this.optionsObj.widget_types['value'] === 'undefined' || typeof this.optionsObj.widget_types['value'][id] === 'undefined' ) {
+    this.widget_type = optionObj.widget_type;
+  }else{
+    this.widget_type = this.optionsObj.widget_types['value'][id];
+  }
+  var widgetClass = VariantOptions.Widgets[this.widget_type].Value
+  if(typeof widgetClass === 'function') {
+    this.value_widget = new widgetClass(this);
   }
   
   this._in_stock = this._available = false;
@@ -55,9 +68,15 @@ function VariantOptionValue(optionObj,id,order){
   
   this.update = function(){
     var variants = this.available_variantes();
-    this.available($.first(variants) !== null || (!this.optionsObj.bidirectional && this.optionObj.order == 0));
-    var stock_variants = (this.available()) ? variants : this.variants;
-    this.in_stock($.first(stock_variants,function(v){ return v.in_stock }) !== null);
+    this.available(utl.first(variants) !== null || (!this.optionsObj.bidirectional && this.optionObj.order == 0));
+    
+    if(this.optionsObj.allow_backorders){
+      this.in_stock(true);
+    }else{
+      var stock_variants = (this.available()) ? variants : this.variants; // might add a attribute "any_stock"
+      this.in_stock(utl.first(stock_variants,function(v){ return v.in_stock }) !== null);
+    }
+    
     if(!this.selectable() && this.selected()){
       this.selected(false);
     }
@@ -69,7 +88,7 @@ function VariantOptionValue(optionObj,id,order){
     selected_option_values = $.map(options,function(s) { if(s.selected()) return s.selected()})
     var variants = this.variants;
     $.each(selected_option_values,function(key,option_value){
-      variants = $.intersect_key(variants,option_value.variants);
+      variants = utl.intersect_key(variants,option_value.variants);
     });
     return variants;
   }

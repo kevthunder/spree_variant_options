@@ -1,4 +1,5 @@
-function VariantOption(optionsObj,id,order){
+VariantOptions.Option = function(optionsObj,id,order){
+  var utl = VariantOptions.Utils
   var self = this;
   this.optionsObj = optionsObj;
   this.id = id;
@@ -8,12 +9,14 @@ function VariantOption(optionsObj,id,order){
   
   
   ////// create widget //////
-  if( typeof optionsObj.widget_type === 'string' ) {
-    this.widget_type = optionsObj.widget_type;
+  if( typeof optionsObj.widget_types === 'string' ) {
+    this.widget_type = optionsObj.widget_types;
+  }else if( typeof optionsObj.widget_types['option'] === 'string' ) {
+    this.widget_type = optionsObj.widget_types['option'];
   }else{
-    this.widget_type = optionsObj.widget_type[id];
+    this.widget_type = optionsObj.widget_types['option'][id];
   }
-  var widgetClass = VariantOptionWidget[this.widget_type]
+  var widgetClass = VariantOptions.Widgets[this.widget_type].Option
   if(typeof widgetClass === 'function') {
     this.widget = new widgetClass(this);
   }else{
@@ -27,11 +30,12 @@ function VariantOption(optionsObj,id,order){
   this.option_values = {};
   var i = 0;
   $.each(this.variants,function(key, value){
-    self.option_values[key] = new VariantOptionValue(self,key,i);
+    self.option_values[key] = new VariantOptions.Value(self,key,i);
     i++;
   });
   
   this._selected = null;
+  this._auto_select = true;
   
   this.init = function() {
     this.widget.init();
@@ -46,8 +50,8 @@ function VariantOption(optionsObj,id,order){
       option_value.update();
     });
     
-    var selectables = $.values(this.selectables());
-    if(selectables.length == 1){
+    var selectables = utl.values(this.selectables());
+    if(this._auto_select && selectables.length == 1){
       selectables[0].try_select();
     }
   }
@@ -61,7 +65,7 @@ function VariantOption(optionsObj,id,order){
   this.siblings = function(){
     return $.map(this.optionsObj.variant_options,function(variant_option, key){
       if(variant_option.id != self.id) return variant_option;
-    });
+    }).sort(function(a, b){return b.order-a.order});
   }
   
   this.next_siblings = function(){
@@ -78,16 +82,23 @@ function VariantOption(optionsObj,id,order){
         last.select_change();
       }
       if(this._selected){
+        this._auto_select = true;
         this._selected.select_change();
       }
-      this.optionsObj.update(this);
+      this.optionsObj.update(this.siblings());
       if(this.widget.select_change) this.widget.select_change();
+      if(this.optionsObj.widget.any_select_change) this.optionsObj.widget.any_select_change();
     }
     return this._selected;
   }
   
+  this.clear = function(){
+    this._auto_select = false;
+    this.selected(false);
+  }
+  
   this.selectables = function(){
-    return $.where(this.option_values,function(val){return val.selectable()});
+    return utl.filter(this.option_values,function(val){return val.selectable()});
   }
   
 }
